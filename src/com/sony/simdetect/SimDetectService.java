@@ -16,24 +16,16 @@
 
 package com.sony.simdetect;
 
-import android.app.AlertDialog;
 import android.app.Service;
-import android.content.ActivityNotFoundException;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.res.Resources;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.os.PowerManager;
+import android.os.Message;
 import android.os.UEventObserver;
-import android.util.Log;
-import android.view.WindowManager;
 import com.android.internal.R;
-
-import static com.android.internal.telephony.uicc.UiccCard.EXTRA_ICC_CARD_ADDED;
+import com.android.internal.telephony.uicc.UiccSlot;
 
 public class SimDetectService extends Service {
     private static final String TAG = "SimDetectService";
@@ -42,6 +34,10 @@ public class SimDetectService extends Service {
     private static final String NOTHING_HAPPENED = "0";
     private static final String SIM_REMOVED = "1";
     private static final String SIM_INSERTED = "2";
+
+    // From src/java/com/android/internal/telephony/uicc/UiccSlot.java
+    private static final int EVENT_CARD_REMOVED = 13;
+    private static final int EVENT_CARD_ADDED = 14;
 
     private final Object mLock = new Object();
 
@@ -85,61 +81,10 @@ public class SimDetectService extends Service {
     }
 
     private void promptForRestart(boolean isAdded) {
-        synchronized (mLock) {
-            final Resources res = getResources();
-            final String dialogComponent = res.getString(
-                    R.string.config_iccHotswapPromptForRestartDialogComponent);
-
-            if (dialogComponent != null) {
-                Intent intent = new Intent().setComponent(ComponentName.unflattenFromString(
-                        dialogComponent)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        .putExtra(EXTRA_ICC_CARD_ADDED, isAdded);
-
-                try {
-                    startActivity(intent);
-                    return;
-                } catch (ActivityNotFoundException e) {
-                    Log.e(TAG, "Unable to find ICC hotswap prompt for restart activity: " + e);
-                }
-            }
-
-            // TODO: Here we assume the device can't handle SIM hot-swap
-            //      and has to reboot. We may want to add a property,
-            //      e.g. REBOOT_ON_SIM_SWAP, to indicate if modem support
-            //      hot-swap.
-            final DialogInterface.OnClickListener listener =
-                    new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    synchronized (mLock) {
-                        if (which == DialogInterface.BUTTON_POSITIVE) {
-                            PowerManager pm = (PowerManager)
-                                    getSystemService(Context.POWER_SERVICE);
-                            pm.reboot("SIM is added.");
-                        }
-                    }
-                }
-            };
-
-            Resources r = Resources.getSystem();
-            String title = r.getString(
-                    isAdded ? R.string.sim_added_title : R.string.sim_removed_title);
-            String message = r.getString(
-                    isAdded ? R.string.sim_added_message : R.string.sim_removed_message);
-            String buttonText = r.getString(R.string.sim_restart_button);
-
-            new Handler(Looper.getMainLooper()).post(new Runnable() {
-                @Override
-                public void run() {
-                    AlertDialog dialog = new AlertDialog.Builder(SimDetectService.this)
-                            .setTitle(title)
-                            .setMessage(message)
-                            .setPositiveButton(buttonText, listener)
-                            .create();
-                    dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-                    dialog.show();
-                }
-            });
-        }
+        new Handler(Looper.getMainLooper()).post(() -> {
+            UiccSlot uiccSlot = new UiccSlot(SimDetectService.this, false);
+            uiccSlot.sendMessage(uiccSlot.obtainMessage(
+                    isAdded ? EVENT_CARD_ADDED : EVENT_CARD_REMOVED, null));
+        });
     }
 }
