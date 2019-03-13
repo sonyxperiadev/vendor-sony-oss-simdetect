@@ -81,13 +81,10 @@ public class SimDetectService extends Service {
     }
 
     private void promptForRestart(boolean isAdded) {
-        new Handler(Looper.getMainLooper()).post(new Runnable() {
-            @Override
-            public void run() {
-                UiccSlot uiccSlot = new UiccSlot(SimDetectService.this, false);
-                uiccSlot.sendMessage(uiccSlot.obtainMessage(
-                        isAdded ? EVENT_CARD_ADDED : EVENT_CARD_REMOVED, null));
-            }
+        new Handler(Looper.getMainLooper()).post(() -> {
+            UiccSlot uiccSlot = new UiccSlot(SimDetectService.this, false);
+            uiccSlot.sendMessage(uiccSlot.obtainMessage(
+                    isAdded ? EVENT_CARD_ADDED : EVENT_CARD_REMOVED, null));
         });
     }
 }
