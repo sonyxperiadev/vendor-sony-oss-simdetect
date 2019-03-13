@@ -1,0 +1,1 @@
+# vendor-sony-oss-simdetect
