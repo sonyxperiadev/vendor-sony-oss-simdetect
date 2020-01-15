@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 The LineageOS Project
+ * Copyright (c) 2019-2020 The LineageOS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,22 @@
  * limitations under the License.
  */
 
-package com.sony.simdetect;
+/*
+ * Rewritten in Kotlin by Pavel Dubrova <pashadubrova@gmail.com>
+ */
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.util.Log;
+package com.sony.simdetect
 
-public class BootCompletedReceiver extends BroadcastReceiver {
-    private static final String TAG = "SimDetect";
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.util.Log
 
-    @Override
-    public void onReceive(final Context context, Intent intent) {
-        Log.d(TAG, "Starting");
-        context.startService(new Intent(context, SimDetectService.class));
+class BootCompletedReceiver : BroadcastReceiver() {
+    private var TAG = "SimDetect"
+
+    override fun onReceive(context: Context, intent: Intent?) {
+        Log.d(TAG, "Starting")
+        context.startService(Intent(context, SimDetectService::class.java))
     }
 }
